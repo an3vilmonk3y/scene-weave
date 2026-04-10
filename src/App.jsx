@@ -64,9 +64,9 @@ Return ONLY the prompt. Max 70 words. Style: photorealistic, cinematic, dramatic
 }
 
 function makeImgUrl(prompt, seed) {
+  // Use a shorter base and let the API handle defaults
   const encoded = encodeURIComponent(prompt);
-  // Removed extra parameters to ensure maximum compatibility
-  return `${IMG_BASE}${encoded}?width=1344&height=756&seed=${seed}`;
+  return `${IMG_BASE}${encoded}?width=1024&height=576&seed=${seed}&nologo=true`;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -260,7 +260,11 @@ export default function App() {
     const sc = scenesRef.current;
     if (!sc[idx] || pending.current.has(idx)) return;
     pending.current.add(idx);
-    patchImg(idx, { loading: true });
+    patchImg(idx, { 
+      loading: false, 
+      url: makeImgUrl(prompt, idx * 8317), 
+      prompt 
+    });
     
     try {
       const key = apiKeyRef.current;
@@ -270,7 +274,7 @@ export default function App() {
         prompt = await buildPrompt(sc[idx], metaRef.current, key);
       } else {
         // Create a cleaner fallback prompt for Pollinations
-        prompt = `cinematic, photorealistic, 8k, highly detailed, atmospheric setting, ${metaRef.current.fandom || "moody lighting"}`;
+        prompt = `cinematic, ${metaRef.current.fandom || "atmospheric"}, high detail`;
       }
       
       patchImg(idx, { 
