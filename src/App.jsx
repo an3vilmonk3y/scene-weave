@@ -2,8 +2,12 @@ import { useState, useEffect, useRef } from "react";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CORS_PROXY = "https://api.allorigins.win/get?url=";
-const IMG_BASE = "https://gen.pollinations.ai/image/";
+const CORS_PROXY  = "https://api.allorigins.win/get?url=";
+const IMG_BASE    = "https://gen.pollinations.ai/image/";
+const AUTH_BASE   = "https://enter.pollinations.ai/authorize";
+const USERINFO    = "https://enter.pollinations.ai/api/device/userinfo";
+// Replace with your real pk_ app key from enter.pollinations.ai
+const APP_KEY     = "pk_ijumhvtWGXqnXV4t";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -240,14 +244,51 @@ export default function App() {
   const [mode,     setMode]     = useState("url");
   const [url,      setUrl]      = useState("");
   const [paste,    setPaste]    = useState("");
-  const [apiKey,   setApiKey]   = useState("");
+  const [apiKey,   setApiKey]   = useState(() => localStorage.getItem("sw_anthropic_key") || "");
   const [meta,     setMeta]     = useState({});
   const [scenes,   setScenes]   = useState([]);
   const [imgData,  setImgData]  = useState({});
   const [cur,      setCur]      = useState(0);
   const [loadMsg,  setLoadMsg]  = useState("");
   const [err,      setErr]      = useState("");
-  const [pollKey, setPollKey]   = useState("");
+  const [pollKey,  setPollKey]  = useState(() => localStorage.getItem("sw_poll_key") || "");
+  const [pollUser, setPollUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sw_poll_user") || "null"); } catch { return null; }
+  });
+
+  // Handle OAuth redirect — key arrives in URL fragment
+  useEffect(() => {
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const returned = hash.get("api_key");
+    if (returned) {
+      setPollKey(returned);
+      localStorage.setItem("sw_poll_key", returned);
+      history.replaceState(null, "", location.pathname);
+      // Fetch userinfo to show who's signed in
+      fetch(USERINFO, { headers: { Authorization: `Bearer ${returned}` } })
+        .then(r => r.json())
+        .then(u => { setPollUser(u); localStorage.setItem("sw_poll_user", JSON.stringify(u)); })
+        .catch(() => {});
+    }
+  }, []);
+
+  // Persist keys
+  useEffect(() => { localStorage.setItem("sw_anthropic_key", apiKey); }, [apiKey]);
+  useEffect(() => { localStorage.setItem("sw_poll_key", pollKey); }, [pollKey]);
+
+  const signInWithPollinations = () => {
+    const params = new URLSearchParams({
+      redirect_url: location.href.split("#")[0],
+      app_key: APP_KEY,
+    });
+    window.location.href = `${AUTH_BASE}?${params}`;
+  };
+
+  const signOut = () => {
+    setPollKey(""); setPollUser(null);
+    localStorage.removeItem("sw_poll_key");
+    localStorage.removeItem("sw_poll_user");
+  };
   
 
   const pending    = useRef(new Set());
@@ -420,14 +461,50 @@ export default function App() {
         <input style={S.input} type="password" placeholder="sk-ant-…"
           value={apiKey} onChange={e => setApiKey(e.target.value)} />
 
-        <label style={S.label}>
-          Pollinations API Key
-          <span style={{color:"#604030",fontStyle:"italic",marginLeft:6,textTransform:"none",fontSize:"0.85em",letterSpacing:0}}>
-            optional — publishable key (pk_…) for higher limits
-          </span>
-        </label>
-        <input style={S.input} type="password" placeholder="pk_…"
-          value={pollKey} onChange={e => setPollKey(e.target.value)} />
+        <label style={S.label}>Pollinations Account</label>
+        {pollUser ? (
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+            padding:"10px 14px",border:"1px solid rgba(100,160,80,0.3)",
+            background:"rgba(80,140,60,0.06)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              {pollUser.picture && <img src={pollUser.picture} alt=""
+                style={{width:24,height:24,borderRadius:"50%",objectFit:"cover"}}/>}
+              <span style={{color:"rgba(140,210,100,0.85)",fontSize:"0.9rem"}}>
+                {pollUser.name || pollUser.preferred_username}
+              </span>
+            </div>
+            <button onClick={signOut} style={{background:"none",border:"none",
+              color:"rgba(160,80,80,0.6)",fontSize:"0.7rem",cursor:"pointer",
+              letterSpacing:"0.1em",fontFamily:"'Cormorant Garamond',serif"}}>
+              sign out
+            </button>
+          </div>
+        ) : (
+          <>
+            <button onClick={signInWithPollinations} style={{
+              width:"100%",padding:"11px 14px",
+              background:"rgba(139,48,48,0.08)",
+              border:"1px solid rgba(139,48,48,0.35)",
+              color:"#eaddd0",fontFamily:"'Cormorant Garamond',serif",
+              fontSize:"0.95rem",letterSpacing:"0.08em",cursor:"pointer",
+              transition:"all 0.2s",textAlign:"center",
+            }}
+              onMouseEnter={e=>{e.target.style.background="rgba(139,48,48,0.2)";}}
+              onMouseLeave={e=>{e.target.style.background="rgba(139,48,48,0.08)";}}>
+              Sign in with Pollinations ✦
+            </button>
+            <p style={{fontSize:"0.62rem",color:"rgba(130,90,80,0.45)",
+              marginTop:6,letterSpacing:"0.1em",textAlign:"center"}}>
+              use your own pollen · no account needed to start
+            </p>
+            {pollKey && !pollUser && (
+              <p style={{fontSize:"0.65rem",color:"rgba(100,160,100,0.6)",
+                marginTop:4,letterSpacing:"0.1em",textAlign:"center"}}>
+                ✓ manual key active
+              </p>
+            )}
+          </>
+        )}
 
         {err && <p style={S.errMsg}>{err}</p>}
 
