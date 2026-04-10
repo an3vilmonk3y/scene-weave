@@ -84,12 +84,15 @@ body, html { height: 100%; overflow: hidden; background: #080508; }
 
 @keyframes flicker { 0%,100%{opacity:.7} 50%{opacity:1} }
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes fadeOut { from{opacity:1} to{opacity:0} }
 @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 @keyframes spinDot { to{transform:rotate(360deg)} }
+@keyframes stageIn { from{opacity:0} to{opacity:1} }
 
 .scene-img { animation: fadeIn 0.9s ease; }
 .para-in   { animation: slideUp 0.4s ease both; }
 .loading-spin { animation: spinDot 1.4s linear infinite; }
+.staging   { animation: stageIn 0.15s ease; }
 `;
 
 const S = {
@@ -286,19 +289,36 @@ export default function App() {
     }
   };
 
+  const [transitioning, setTransitioning] = useState(false);
+  const imgDataRef = useRef({});
+  imgDataRef.current = imgData;
+
   const navigate = (delta) => {
-    setCur(prev => {
-      const next = prev + delta;
-      if (next < 0 || next >= scenesRef.current.length) return prev;
-      return next;
-    });
+    const next = cur + delta;
+    if (next < 0 || next >= scenesRef.current.length) return;
+    const nextImg = imgDataRef.current[next];
+    if (nextImg?.url) {
+      setCur(next);
+    } else {
+      setTransitioning(true);
+      genImage(next);
+      setCur(next);
+    }
   };
+
+  // Auto-dismiss staging when image arrives
+  useEffect(() => {
+    if (!transitioning) return;
+    const img = imgData[cur];
+    if (img?.url || img?.error) setTransitioning(false);
+  }, [imgData, cur, transitioning]);
 
   // Preload on scene change
   useEffect(() => {
     if (screen !== "reader") return;
     genImage(cur);
     if (cur + 1 < scenesRef.current.length) genImage(cur + 1);
+    if (cur + 2 < scenesRef.current.length) genImage(cur + 2);
   }, [cur, screen]);
 
   // Keyboard nav
@@ -364,7 +384,7 @@ export default function App() {
       <style>{CSS}</style>
       <div style={S.card}>
         <div style={S.topRule} />
-        <h1 style={S.h1}>Fic to Visual Novel</h1>
+        <h1 style={S.h1}>SceneWeave</h1>
         <p style={S.sub}>AO3 → Cinematic Reader</p>
 
         <div style={S.tabs}>
@@ -429,6 +449,31 @@ export default function App() {
       <div style={S.loadDot} className="loading-spin" />
       <p style={S.loadTitle}>Opening the story…</p>
       <p style={S.loadMsg}>{loadMsg}</p>
+    </div>
+  );
+
+  // ── Staging (waiting for next image) ──────────────────────────────────────
+  if (screen === "reader" && transitioning) return (
+    <div className="staging" style={{
+      height: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 20,
+      background: "radial-gradient(ellipse at 50% 40%, #1c0a12 0%, #080508 70%)",
+      fontFamily: "'Cormorant Garamond', serif",
+    }}>
+      <style>{CSS}</style>
+      <div style={{
+        width: 40, height: 40, borderRadius: "50%",
+        border: "1.5px solid rgba(139,50,50,0.2)",
+        borderTopColor: "#8b3030",
+      }} className="loading-spin" />
+      <p style={{
+        fontFamily: "'Playfair Display', serif", fontStyle: "italic",
+        fontSize: "1.1rem", color: "rgba(234,221,208,0.5)", letterSpacing: "0.06em",
+      }}>{meta.title}</p>
+      <p style={{
+        fontSize: "0.65rem", color: "rgba(139,80,80,0.4)",
+        letterSpacing: "0.2em", textTransform: "uppercase",
+      }}>Painting the scene…</p>
     </div>
   );
 
