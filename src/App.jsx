@@ -252,15 +252,19 @@ export default function App() {
   const [cur,      setCur]      = useState(0);
   const [loadMsg,  setLoadMsg]  = useState("");
   const [err,      setErr]      = useState("");
+  const [pollKey, setPollKey]   = useState("");
+  
 
   const pending    = useRef(new Set());
   const scenesRef  = useRef([]);
   const metaRef    = useRef({});
   const apiKeyRef  = useRef("");
+  const pollKeyRef = useRef("");
 
   scenesRef.current  = scenes;
   metaRef.current    = meta;
   apiKeyRef.current  = apiKey;
+  pollKeyRef.current = pollKey;
 
   const patchImg = (idx, patch) =>
     setImgData(prev => ({ ...prev, [idx]: { ...(prev[idx] ?? {}), ...patch } }));
