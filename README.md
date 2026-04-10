@@ -41,33 +41,6 @@ Your app will be live at `your-project.vercel.app` in about 60 seconds.
 
 ---
 
-## Earn Pollen credits from Pollinations
-
-Once deployed, submit your app to earn daily Pollen credits:
-
-### Step 1 — Register your domain
-
-Go to [enter.pollinations.ai](https://enter.pollinations.ai), log in with GitHub, and register your deployed domain (e.g. `your-project.vercel.app`). This puts you on the **Seed** tier and starts your daily credit grants.
-
-### Step 2 — Star the Pollinations GitHub repo
-
-Go to [github.com/pollinations/pollinations](https://github.com/pollinations/pollinations) and star it. This counts as a one-time community reward for Pollen.
-
-### Step 3 — Submit to the community showcase
-
-Open a GitHub Issue on the Pollinations repo using their app submission template, or open a PR adding your app to `apps/APPS.md`. Include:
-- App name and description
-- Your deployed URL
-- Screenshot
-
-Apps accepted to the showcase are featured on [pollinations.ai/apps](https://pollinations.ai/apps) and can be eligible for **Flower** or **Nectar** tier upgrades, which give significantly higher daily grants.
-
-### Step 4 — Join their Discord
-
-discord.gg/pollinations — community members can manually upgrade your tier, and there are occasional Pollen bounties for fixing issues or building features.
-
----
-
 ## Tech stack
 
 - React 18 + Vite
