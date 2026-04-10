@@ -63,18 +63,10 @@ Return ONLY the prompt. Max 70 words. Style: photorealistic, cinematic, dramatic
   return data.content?.[0]?.text ?? "cinematic interior, moody light, photorealistic";
 }
 
-function makeImgUrl(prompt, seed) {
-  const encoded = encodeURIComponent(prompt);
-  const key = apiKeyRef.current; // Get the key from your ref
-  
-  // Base URL with standardized 2026 parameters
+function makeImgUrl(prompt, seed, key) {
+  const encoded = encodeURIComponent(prompt.slice(0, 300));
   let url = `${IMG_BASE}${encoded}?width=1024&height=576&seed=${seed}&model=flux&nologo=true`;
-  
-  // If a key exists, append it to authorize the request and bypass free-tier limits
-  if (key) {
-    url += `&key=${key}`;
-  }
-  
+  if (key) url += `&key=${encodeURIComponent(key)}`;
   return url;
 }
 
@@ -273,33 +265,26 @@ export default function App() {
     const sc = scenesRef.current;
     if (!sc[idx] || pending.current.has(idx)) return;
     pending.current.add(idx);
-    patchImg(idx, { 
-      loading: false, 
-      url: makeImgUrl(prompt, idx * 8317), 
-      prompt 
-    });
-    
+    patchImg(idx, { loading: true });
+
     try {
-      const key = apiKeyRef.current;
-      let prompt = "";
-      
-      if (key) {
-        prompt = await buildPrompt(sc[idx], metaRef.current, key);
+      const anthropicKey = apiKeyRef.current;
+      const pk = pollKeyRef.current;
+      let prompt;
+
+      if (anthropicKey) {
+        prompt = await buildPrompt(sc[idx], metaRef.current, anthropicKey);
       } else {
-        // Create a cleaner fallback prompt for Pollinations
-        prompt = `cinematic, ${metaRef.current.fandom || "atmospheric"}, high detail`;
+        prompt = `cinematic ${metaRef.current.fandom || "atmospheric scene"}, dramatic lighting, photorealistic`;
       }
-      
-      patchImg(idx, { 
-        loading: false, 
-        url: makeImgUrl(prompt, idx * 8317), 
-        prompt 
-      });
+
+      patchImg(idx, { loading: false, url: makeImgUrl(prompt, idx * 8317, pk), prompt });
     } catch (e) {
       console.error("Image gen error:", e);
+      pending.current.delete(idx);
       patchImg(idx, { loading: false, error: true });
     }
-};
+  };
 
   const navigate = (delta) => {
     setCur(prev => {
@@ -414,6 +399,15 @@ export default function App() {
         </label>
         <input style={S.input} type="password" placeholder="sk-ant-…"
           value={apiKey} onChange={e => setApiKey(e.target.value)} />
+
+        <label style={S.label}>
+          Pollinations API Key
+          <span style={{color:"#604030",fontStyle:"italic",marginLeft:6,textTransform:"none",fontSize:"0.85em",letterSpacing:0}}>
+            optional — publishable key (pk_…) for higher limits
+          </span>
+        </label>
+        <input style={S.input} type="password" placeholder="pk_…"
+          value={pollKey} onChange={e => setPollKey(e.target.value)} />
 
         {err && <p style={S.errMsg}>{err}</p>}
 
