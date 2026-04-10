@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CORS_PROXY = "https://api.allorigins.win/get?url=";
-const IMG_BASE   = "https://image.pollinations.ai/prompt/";
+const IMG_BASE = "https://gen.pollinations.ai/image/";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -64,9 +64,18 @@ Return ONLY the prompt. Max 70 words. Style: photorealistic, cinematic, dramatic
 }
 
 function makeImgUrl(prompt, seed) {
-  // Use a shorter base and let the API handle defaults
   const encoded = encodeURIComponent(prompt);
-  return `${IMG_BASE}${encoded}?width=1024&height=576&seed=${seed}&nologo=true`;
+  const key = apiKeyRef.current; // Get the key from your ref
+  
+  // Base URL with standardized 2026 parameters
+  let url = `${IMG_BASE}${encoded}?width=1024&height=576&seed=${seed}&model=flux&nologo=true`;
+  
+  // If a key exists, append it to authorize the request and bypass free-tier limits
+  if (key) {
+    url += `&key=${key}`;
+  }
+  
+  return url;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
