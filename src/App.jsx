@@ -64,8 +64,9 @@ Return ONLY the prompt. Max 70 words. Style: photorealistic, cinematic, dramatic
 }
 
 function makeImgUrl(prompt, seed) {
-  const encoded = encodeURIComponent(prompt + ", photorealistic, cinematic, 8k, highly detailed");
-  return `${IMG_BASE}${encoded}?width=1344&height=756&model=flux&nologo=true&seed=${seed}`;
+  const encoded = encodeURIComponent(prompt);
+  // Removed extra parameters to ensure maximum compatibility
+  return `${IMG_BASE}${encoded}?width=1344&height=756&seed=${seed}`;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -260,16 +261,28 @@ export default function App() {
     if (!sc[idx] || pending.current.has(idx)) return;
     pending.current.add(idx);
     patchImg(idx, { loading: true });
+    
     try {
       const key = apiKeyRef.current;
-      const prompt = key
-        ? await buildPrompt(sc[idx], metaRef.current, key)
-        : `cinematic interior, dramatic light, moody atmosphere, photorealistic, ${metaRef.current.fandom || "romantic setting"}`;
-      patchImg(idx, { loading: false, url: makeImgUrl(prompt, idx * 8317), prompt });
+      let prompt = "";
+      
+      if (key) {
+        prompt = await buildPrompt(sc[idx], metaRef.current, key);
+      } else {
+        // Create a cleaner fallback prompt for Pollinations
+        prompt = `cinematic, photorealistic, 8k, highly detailed, atmospheric setting, ${metaRef.current.fandom || "moody lighting"}`;
+      }
+      
+      patchImg(idx, { 
+        loading: false, 
+        url: makeImgUrl(prompt, idx * 8317), 
+        prompt 
+      });
     } catch (e) {
+      console.error("Image gen error:", e);
       patchImg(idx, { loading: false, error: true });
     }
-  };
+};
 
   const navigate = (delta) => {
     setCur(prev => {
